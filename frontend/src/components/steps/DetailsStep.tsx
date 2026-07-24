@@ -68,11 +68,11 @@ export function DetailsStep({ session, onSaved, onCancel }: DetailsStepProps) {
         </label>
         <input
           id="apiKey"
-          type="password"
+          type="text"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
           required
-          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-mono text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           placeholder="Enter your Provider API key"
         />
       </div>
