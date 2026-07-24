@@ -1,10 +1,14 @@
 import { buildApp } from "./app.js"
 
+const DEFAULT_PORT = 3000
+const DEFAULT_HOST = "0.0.0.0"
+const DEFAULT_LOG_LEVEL = "info"
+
 const isProduction = process.env.NODE_ENV === "production"
 
 const app = buildApp({
   logger: {
-    level: process.env.LOG_LEVEL ?? "info",
+    level: process.env.LOG_LEVEL ?? DEFAULT_LOG_LEVEL,
     ...(isProduction
       ? {}
       : {
@@ -19,10 +23,10 @@ const app = buildApp({
         }),
   },
 })
-const port = Number(process.env.PORT ?? 3000)
+const port = Number(process.env.PORT ?? DEFAULT_PORT)
 
 app
-  .listen({ port, host: "0.0.0.0" })
+  .listen({ port, host: DEFAULT_HOST })
   .then(() => {
     app.log.info(`Backend listening on http://localhost:${port}`)
   })

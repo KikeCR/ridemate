@@ -309,6 +309,30 @@ Final message (the report itself):
 >
 > No findings met the >80%-confidence exploitability bar required for this report.
 
+## Turn 14
+
+**You:**
+
+> Hello good morning, can you help me reviewing the code here, both backend and frontend and checking if we properly used constants? If not please add constants where it make sense to, I know for a fact that we hace some hardcoded values that would be better as contants, so plese review properly and update where it makes sense to have them. Act as a senior fullstack engineer to evaluate and do this task
+
+**Claude:** (Read every backend and frontend source file fresh rather than from memory: `app.ts`, `index.ts`, `lib/errors.ts`, `lib/hash.ts`, `lib/partner.ts`, `lib/credentialFingerprint.ts`, `provider/mockProvider.ts`, `provider/types.ts`, `routes/provider.ts`, `routes/session.ts`, `services/sessionService.ts`, `schemas/*.ts` on the backend; `App.tsx`, `api/client.ts`, `api/session.ts`, `types/session.ts`, `components/Layout.tsx`, `StepIndicator.tsx`, `ValidationStatusBadge.tsx`, all three step components, all five hooks, and `main.tsx` on the frontend. Grepped across the repo for the mock account-ID literals and the partner-ID literal to see where else they were duplicated, including test files and `backend/scripts/resetSession.ts`. Weighed each candidate against over-engineering before touching anything.)
+
+Final message:
+
+> I reviewed all backend (`backend/src`) and frontend (`frontend/src`) source files. The codebase was already in good shape, `PARTNER_ID`, `DEFAULT_PAGE_SIZE`, `PROVIDER_STATUS_MAP`, `LIVE_ELIGIBLE_STATUSES`, `SESSION_QUERY_KEY`, `STEPS`, and `STATUS_CONFIG` were all already properly extracted.
+>
+> **Fixed** in `mockProvider.ts` and `index.ts`:
+> - `delay(50)` → named `SIMULATED_LATENCY_MS`
+> - The four mock account-ID string literals (`"acc-valid"`, `"acc-partial"`, `"acc-invalid"`, `"acc-unavailable"`) scattered across the `switch` statement → consolidated into a `MOCK_ACCOUNT_IDS` const object
+> - Server bootstrap magic values (`3000`, `"0.0.0.0"`, `"info"`) → named `DEFAULT_PORT`, `DEFAULT_HOST`, `DEFAULT_LOG_LEVEL`
+>
+> **Deliberately left alone** (extracting these would be over-engineering, not fixing a real problem):
+> - HTTP status codes in routes, self-documenting, idiomatic as literals
+> - Lucide icon `size={...}` props in frontend, purely cosmetic, no shared design-system scale to justify a constant
+> - Literal account IDs/partner IDs inside `*.test.ts` files, intentional, readable test fixtures
+>
+> Verified: backend type-checks clean, 61/61 backend tests pass, 25/25 frontend tests pass (frontend needed no changes).
+
 ---
 
 ## Final state at this point in the session
