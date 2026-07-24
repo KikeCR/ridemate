@@ -1,8 +1,10 @@
-# Partner Onboarding Wizard
+# RideMate — Partner Onboarding Wizard
 
 A resumable, 3-step B2B partner onboarding wizard: connect a Provider account,
 validate the credentials against a mock Provider, and go live. Built as a
-take-home assessment.
+take-home assessment. "RideMate" is a placeholder product name applied purely
+for presentable, consistent branding across the wizard (header, browser tab,
+favicon) — it isn't functionally significant to the assessment.
 
 - **Backend**: Node.js + TypeScript, Fastify, Prisma, PostgreSQL
 - **Frontend**: React + TypeScript, Vite, TanStack Query, Tailwind CSS, lucide-react
