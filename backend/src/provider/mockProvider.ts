@@ -11,6 +11,15 @@ function delay(ms: number): Promise<void> {
 }
 
 const DEFAULT_PAGE_SIZE = 20
+const SIMULATED_LATENCY_MS = 50
+
+/** Mock account IDs the demo Provider recognizes - drives the switch below. */
+const MOCK_ACCOUNT_IDS = {
+  VALID: "acc-valid",
+  PARTIAL: "acc-partial",
+  INVALID: "acc-invalid",
+  UNAVAILABLE: "acc-unavailable",
+} as const
 
 /**
  * Slices a full item list into the requested page. The mock's item lists are
@@ -41,10 +50,10 @@ export class MockProvider implements Provider {
     _apiKey: string,
     options?: ProviderValidateOptions
   ): Promise<ProviderResult> {
-    await delay(50)
+    await delay(SIMULATED_LATENCY_MS)
 
     switch (accountId) {
-      case "acc-valid": {
+      case MOCK_ACCOUNT_IDS.VALID: {
         const allItems: ProviderValidationItem[] = [
           {
             id: "account-lookup",
@@ -56,7 +65,7 @@ export class MockProvider implements Provider {
         ]
         return { status: "valid", ...paginate(allItems, options) }
       }
-      case "acc-partial": {
+      case MOCK_ACCOUNT_IDS.PARTIAL: {
         const allItems: ProviderValidationItem[] = [
           {
             id: "account-lookup",
@@ -88,7 +97,7 @@ export class MockProvider implements Provider {
           ],
         }
       }
-      case "acc-invalid": {
+      case MOCK_ACCOUNT_IDS.INVALID: {
         const allItems: ProviderValidationItem[] = [
           {
             id: "credentials",
@@ -104,7 +113,7 @@ export class MockProvider implements Provider {
           reason: "Invalid API key for the given account.",
         }
       }
-      case "acc-unavailable":
+      case MOCK_ACCOUNT_IDS.UNAVAILABLE:
         throw new ProviderUnavailableError("Simulated provider timeout")
       default:
         // A provider shouldn't vouch for an account it has no record of -
