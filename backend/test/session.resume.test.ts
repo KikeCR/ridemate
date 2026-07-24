@@ -2,6 +2,7 @@ import request from "supertest"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import type { FastifyInstance } from "fastify"
 import { buildTestApp } from "./helpers/buildTestApp.js"
+import { prisma } from "../src/db/prisma.js"
 
 describe("GET /api/session (resume-or-create)", () => {
   let app: FastifyInstance
@@ -44,5 +45,19 @@ describe("GET /api/session (resume-or-create)", () => {
     expect(resumed.body.session.accountId).toBe("acc-valid")
     expect(resumed.body.session.currentStep).toBe("VALIDATE")
     expect(resumed.body.session.hasApiKey).toBe(true)
+  })
+
+  it("handles two concurrent GETs on a cold session without creating duplicates", async () => {
+    const [first, second] = await Promise.all([
+      request(app.server).get("/api/session"),
+      request(app.server).get("/api/session"),
+    ])
+
+    expect(first.status).toBe(200)
+    expect(second.status).toBe(200)
+    expect(first.body.session.id).toBe(second.body.session.id)
+
+    const count = await prisma.onboardingSession.count()
+    expect(count).toBe(1)
   })
 })

@@ -5,9 +5,13 @@ import type { SessionDto } from "../../types/session"
 
 interface DetailsStepProps {
   session: SessionDto
+  /** Called after a successful save - only relevant when editing from a later step. */
+  onSaved?: () => void
+  /** When present, renders a "Cancel" action (i.e. we're editing from VALIDATE/REVIEW). */
+  onCancel?: () => void
 }
 
-export function DetailsStep({ session }: DetailsStepProps) {
+export function DetailsStep({ session, onSaved, onCancel }: DetailsStepProps) {
   const [companyName, setCompanyName] = useState(session.companyName ?? "")
   const [accountId, setAccountId] = useState(session.accountId ?? "")
   const [apiKey, setApiKey] = useState("")
@@ -16,7 +20,7 @@ export function DetailsStep({ session }: DetailsStepProps) {
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    mutation.mutate({ companyName, accountId, apiKey })
+    mutation.mutate({ companyName, accountId, apiKey }, { onSuccess: () => onSaved?.() })
   }
 
   return (
@@ -77,13 +81,29 @@ export function DetailsStep({ session }: DetailsStepProps) {
         <p className="text-sm text-red-600">Could not save details. Please try again.</p>
       )}
 
-      <button
-        type="submit"
-        disabled={mutation.isPending}
-        className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {mutation.isPending ? "Saving..." : "Save & continue"}
-      </button>
+      <div className="flex gap-3">
+        <button
+          type="submit"
+          disabled={mutation.isPending}
+          className="flex-1 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {mutation.isPending
+            ? "Saving..."
+            : onCancel
+              ? "Save changes"
+              : "Save & continue"}
+        </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={mutation.isPending}
+            className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
   )
 }

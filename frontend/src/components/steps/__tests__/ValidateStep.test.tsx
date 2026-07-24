@@ -88,7 +88,13 @@ describe("ValidateStep", () => {
     const validation: ValidationDto = {
       status: "PARTIAL",
       items: [
-        { key: "billing-profile", passed: false, message: "Billing profile incomplete" },
+        {
+          id: "billing-profile",
+          label: "Billing profile",
+          passed: false,
+          retryable: true,
+          message: "Billing profile incomplete",
+        },
       ],
       warnings: [
         "Billing profile incomplete; you can go live but we recommend following up.",
@@ -100,5 +106,74 @@ describe("ValidateStep", () => {
     const page = ValidateStepPage.render({ session, validation })
 
     expect(page.text("Billing profile incomplete")).toBeInTheDocument()
+  })
+
+  it("only shows a per-item retry action for retryable (failed) items", () => {
+    const validation: ValidationDto = {
+      status: "PARTIAL",
+      items: [
+        { id: "account-lookup", label: "Account lookup", passed: true, retryable: false },
+        {
+          id: "billing-profile",
+          label: "Billing profile",
+          passed: false,
+          retryable: true,
+          message: "Billing profile incomplete",
+        },
+      ],
+      warnings: [],
+      reason: null,
+      attempts: 1,
+      lastAttemptAt: "2026-01-01T00:00:00.000Z",
+    }
+    const page = ValidateStepPage.render({ session, validation })
+
+    expect(page.retryItemButton()).toBeInTheDocument()
+  })
+
+  it("calls retryValidationItem with the item id when its retry button is clicked", async () => {
+    vi.mocked(sessionApi.retryValidationItem).mockResolvedValue({
+      session,
+      validation: {
+        status: "PARTIAL",
+        items: [],
+        warnings: [],
+        reason: null,
+        attempts: 2,
+        lastAttemptAt: null,
+      },
+    } satisfies SessionEnvelope)
+
+    const validation: ValidationDto = {
+      status: "PARTIAL",
+      items: [
+        {
+          id: "billing-profile",
+          label: "Billing profile",
+          passed: false,
+          retryable: true,
+          message: "Billing profile incomplete",
+        },
+      ],
+      warnings: [],
+      reason: null,
+      attempts: 1,
+      lastAttemptAt: "2026-01-01T00:00:00.000Z",
+    }
+    const page = ValidateStepPage.render({ session, validation })
+
+    page.clickRetryItem()
+
+    await waitFor(() => {
+      expect(sessionApi.retryValidationItem).toHaveBeenCalledWith("billing-profile")
+    })
+  })
+
+  it("calls onEditDetails when the Edit details link is clicked", () => {
+    const page = ValidateStepPage.render({ session, validation: null })
+
+    page.clickEditDetails()
+
+    expect(page.onEditDetails).toHaveBeenCalledTimes(1)
   })
 })

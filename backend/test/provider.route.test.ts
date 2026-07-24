@@ -55,4 +55,19 @@ describe("POST /provider/validate (mock provider HTTP contract)", () => {
     expect(res.status).toBe(200)
     expect(res.body.status).toBe("invalid")
   })
+
+  it("forwards page/pageSize through to the provider", async () => {
+    const res = await request(app.server)
+      .post("/provider/validate")
+      .send({ accountId: "acc-partial", apiKey: "k", page: 2, pageSize: 2 })
+
+    expect(res.status).toBe(200)
+    expect(res.body.pagination).toEqual({
+      page: 2,
+      pageSize: 2,
+      totalItems: 3,
+      totalPages: 2,
+    })
+    expect(res.body.items).toHaveLength(1)
+  })
 })

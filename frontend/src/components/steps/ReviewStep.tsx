@@ -1,4 +1,4 @@
-import { PartyPopper, Rocket } from "lucide-react"
+import { PartyPopper, Pencil, Rocket } from "lucide-react"
 import { useGoLiveMutation } from "../../hooks/useGoLiveMutation"
 import { ValidationStatusBadge } from "../ValidationStatusBadge"
 import type { SessionDto, ValidationDto } from "../../types/session"
@@ -6,9 +6,10 @@ import type { SessionDto, ValidationDto } from "../../types/session"
 interface ReviewStepProps {
   session: SessionDto
   validation: ValidationDto | null
+  onEditDetails: () => void
 }
 
-export function ReviewStep({ session, validation }: ReviewStepProps) {
+export function ReviewStep({ session, validation, onEditDetails }: ReviewStepProps) {
   const mutation = useGoLiveMutation()
   const isLive = session.status === "LIVE"
 
@@ -26,9 +27,19 @@ export function ReviewStep({ session, validation }: ReviewStepProps) {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-2 text-slate-900">
-        <Rocket size={20} className="text-indigo-600" />
-        <h2 className="text-lg font-semibold">Review & go live</h2>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-slate-900">
+          <Rocket size={20} className="text-indigo-600" />
+          <h2 className="text-lg font-semibold">Review & go live</h2>
+        </div>
+        <button
+          type="button"
+          onClick={onEditDetails}
+          className="flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+        >
+          <Pencil size={14} />
+          Edit details
+        </button>
       </div>
 
       <dl className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm">

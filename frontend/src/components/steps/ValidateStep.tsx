@@ -1,15 +1,18 @@
-import { ShieldCheck } from "lucide-react"
+import { Pencil, RotateCw, ShieldCheck } from "lucide-react"
 import { useValidateMutation } from "../../hooks/useValidateMutation"
+import { useRetryItemMutation } from "../../hooks/useRetryItemMutation"
 import { ValidationStatusBadge } from "../ValidationStatusBadge"
 import type { SessionDto, ValidationDto } from "../../types/session"
 
 interface ValidateStepProps {
   session: SessionDto
   validation: ValidationDto | null
+  onEditDetails: () => void
 }
 
-export function ValidateStep({ session, validation }: ValidateStepProps) {
+export function ValidateStep({ session, validation, onEditDetails }: ValidateStepProps) {
   const mutation = useValidateMutation()
+  const retryItemMutation = useRetryItemMutation()
   const status = validation?.status ?? "PENDING"
   const hasRun = validation !== null
 
@@ -19,9 +22,19 @@ export function ValidateStep({ session, validation }: ValidateStepProps) {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-2 text-slate-900">
-        <ShieldCheck size={20} className="text-indigo-600" />
-        <h2 className="text-lg font-semibold">Validate your Provider connection</h2>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-slate-900">
+          <ShieldCheck size={20} className="text-indigo-600" />
+          <h2 className="text-lg font-semibold">Validate your Provider connection</h2>
+        </div>
+        <button
+          type="button"
+          onClick={onEditDetails}
+          className="flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+        >
+          <Pencil size={14} />
+          Edit details
+        </button>
       </div>
       <p className="text-sm text-slate-500">
         We&apos;ll check the credentials for account{" "}
@@ -39,14 +52,34 @@ export function ValidateStep({ session, validation }: ValidateStepProps) {
 
       {validation && validation.items.length > 0 && (
         <ul className="space-y-1 text-sm">
-          {validation.items.map((item) => (
-            <li key={item.key} className="flex items-center gap-2">
-              <span className={item.passed ? "text-emerald-600" : "text-red-600"}>
-                {item.passed ? "✓" : "✗"}
-              </span>
-              <span className="text-slate-700">{item.message ?? item.key}</span>
-            </li>
-          ))}
+          {validation.items.map((item) => {
+            const isRetryingThisItem =
+              retryItemMutation.isPending && retryItemMutation.variables === item.id
+            return (
+              <li key={item.id} className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className={item.passed ? "text-emerald-600" : "text-red-600"}>
+                    {item.passed ? "✓" : "✗"}
+                  </span>
+                  <span className="text-slate-700">{item.message ?? item.label}</span>
+                </div>
+                {item.retryable && (
+                  <button
+                    type="button"
+                    onClick={() => retryItemMutation.mutate(item.id)}
+                    disabled={isRetryingThisItem}
+                    className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 disabled:opacity-60"
+                  >
+                    <RotateCw
+                      size={12}
+                      className={isRetryingThisItem ? "animate-spin" : ""}
+                    />
+                    {isRetryingThisItem ? "Retrying..." : "Retry"}
+                  </button>
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
 

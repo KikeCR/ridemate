@@ -27,4 +27,12 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
     const result = await service.goLive()
     return reply.code(200).send(result)
   })
+
+  app.post<{ Params: { itemId: string } }>(
+    "/api/session/validate/items/:itemId/retry",
+    async (request, reply) => {
+      const result = await service.retryItem(request.params.itemId)
+      return reply.code(200).send(result)
+    }
+  )
 }

@@ -80,27 +80,37 @@ describe("POST /api/session/validate", () => {
 
   it("re-validates when credentials change", async () => {
     await saveDetails(app, "acc-valid")
-    await request(app.server).post("/api/session/validate").send({})
+    const first = await request(app.server).post("/api/session/validate").send({})
+    expect(first.status).toBe(200)
 
     await saveDetails(app, "acc-partial")
     const res = await request(app.server).post("/api/session/validate").send({})
 
+    expect(res.status).toBe(200)
     expect(validateSpy).toHaveBeenCalledTimes(2)
     expect(res.body.validation.status).toBe("PARTIAL")
   })
 
   it("re-validates on explicit forceRetry even with unchanged credentials", async () => {
     await saveDetails(app, "acc-valid")
-    await request(app.server).post("/api/session/validate").send({})
-    await request(app.server).post("/api/session/validate").send({ forceRetry: true })
+    const first = await request(app.server).post("/api/session/validate").send({})
+    expect(first.status).toBe(200)
+
+    const second = await request(app.server)
+      .post("/api/session/validate")
+      .send({ forceRetry: true })
+    expect(second.status).toBe(200)
 
     expect(validateSpy).toHaveBeenCalledTimes(2)
   })
 
   it("auto-retries an UNAVAILABLE result on the next call without forceRetry", async () => {
     await saveDetails(app, "acc-unavailable")
-    await request(app.server).post("/api/session/validate").send({})
+    const first = await request(app.server).post("/api/session/validate").send({})
+    expect(first.status).toBe(200)
+
     const second = await request(app.server).post("/api/session/validate").send({})
+    expect(second.status).toBe(200)
 
     expect(validateSpy).toHaveBeenCalledTimes(2)
     expect(second.body.validation.attempts).toBe(2)

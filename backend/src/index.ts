@@ -1,6 +1,24 @@
 import { buildApp } from "./app.js"
 
-const app = buildApp({ logger: true })
+const isProduction = process.env.NODE_ENV === "production"
+
+const app = buildApp({
+  logger: {
+    level: process.env.LOG_LEVEL ?? "info",
+    ...(isProduction
+      ? {}
+      : {
+          transport: {
+            target: "pino-pretty",
+            options: {
+              colorize: true,
+              translateTime: "HH:MM:ss",
+              ignore: "pid,hostname",
+            },
+          },
+        }),
+  },
+})
 const port = Number(process.env.PORT ?? 3000)
 
 app
