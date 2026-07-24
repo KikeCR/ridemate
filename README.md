@@ -60,12 +60,7 @@ npm run prisma:migrate:test                # applies the same migration(s) to th
 npm run dev                                # http://localhost:3000
 ```
 
-Run the backend tests (separate terminal, dev server doesn't need to be running):
-
-```bash
-cd backend
-npm test
-```
+Tests: see the "Tests" section below.
 
 `npm run dev` logs with `pino-pretty` (colorized, readable) at `LOG_LEVEL`
 (optional env var, defaults to `info`). Tests and `npm run build`/`start` use
@@ -96,14 +91,30 @@ npm install
 npm run dev              # http://localhost:5173
 ```
 
-Run the frontend tests:
-
-```bash
-cd frontend
-npm test
-```
+Tests: see the "Tests" section below.
 
 Open http://localhost:5173 with the backend running and walk the wizard.
+
+## Tests
+
+Both projects use Vitest. Neither suite requires `npm run dev` to be running.
+
+```bash
+cd backend && npm test    # Vitest + Supertest against the real Fastify app
+cd frontend && npm test   # Vitest + React Testing Library
+```
+
+- **Backend** hits the actual Postgres test database (`ridemate_test`) through
+  the real Fastify app via Supertest, not mocks; tables are truncated between
+  tests (`test/setup.ts`). Requires the test DB to be migrated first (see
+  "1. Database setup" and "2. Backend" above). Covers: resume-or-create,
+  idempotent double-validate and double-go-live, all 4 Provider paths, the
+  go-live credential-fingerprint check, per-item retry, malformed/empty JSON
+  bodies, and a concurrent double-`GET` race on a cold session.
+- **Frontend** uses React Testing Library via the Page Object pattern (see
+  "Code style & testing conventions" below); covers step transitions and
+  validation-state rendering, mocking the API layer rather than hitting a
+  real backend.
 
 ## Code style & testing conventions
 
