@@ -16,9 +16,9 @@ export function ReviewStep({ session, validation, onEditDetails }: ReviewStepPro
   if (isLive) {
     return (
       <div className="space-y-4 text-center">
-        <PartyPopper size={32} className="mx-auto text-indigo-600" />
-        <h2 className="text-lg font-semibold text-slate-900">You&apos;re live!</h2>
-        <p className="text-sm text-slate-500">
+        <PartyPopper size={32} className="mx-auto text-indigo-400" />
+        <h2 className="text-lg font-semibold text-slate-100">You&apos;re live!</h2>
+        <p className="text-sm text-slate-400">
           {session.companyName} is now connected and live on the platform.
         </p>
       </div>
@@ -28,31 +28,31 @@ export function ReviewStep({ session, validation, onEditDetails }: ReviewStepPro
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-slate-900">
-          <Rocket size={20} className="text-indigo-600" />
+        <div className="flex items-center gap-2 text-slate-100">
+          <Rocket size={20} className="text-indigo-400" />
           <h2 className="text-lg font-semibold">Review & go live</h2>
         </div>
         <button
           type="button"
           onClick={onEditDetails}
-          className="flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+          className="flex items-center gap-1 text-sm font-medium text-indigo-400 hover:text-indigo-300"
         >
           <Pencil size={14} />
           Edit details
         </button>
       </div>
 
-      <dl className="space-y-2 rounded-lg bg-slate-50 p-4 text-sm">
+      <dl className="space-y-2 rounded-lg bg-slate-800 p-4 text-sm">
         <div className="flex justify-between">
-          <dt className="text-slate-500">Company</dt>
-          <dd className="font-medium text-slate-900">{session.companyName}</dd>
+          <dt className="text-slate-400">Company</dt>
+          <dd className="font-medium text-slate-100">{session.companyName}</dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-slate-500">Account ID</dt>
-          <dd className="font-mono text-slate-900">{session.accountId}</dd>
+          <dt className="text-slate-400">Account ID</dt>
+          <dd className="font-mono text-slate-100">{session.accountId}</dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-slate-500">Validation</dt>
+          <dt className="text-slate-400">Validation</dt>
           <dd>
             <ValidationStatusBadge status={validation?.status ?? "PENDING"} />
           </dd>
@@ -60,7 +60,7 @@ export function ReviewStep({ session, validation, onEditDetails }: ReviewStepPro
       </dl>
 
       {validation?.warnings && validation.warnings.length > 0 && (
-        <ul className="space-y-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+        <ul className="space-y-1 rounded-lg border border-amber-800 bg-amber-950 p-3 text-sm text-amber-300">
           {validation.warnings.map((warning) => (
             <li key={warning}>{warning}</li>
           ))}
@@ -68,7 +68,7 @@ export function ReviewStep({ session, validation, onEditDetails }: ReviewStepPro
       )}
 
       {mutation.isError && (
-        <p className="text-sm text-red-600">Could not go live. Please try again.</p>
+        <p className="text-sm text-red-400">Could not go live. Please try again.</p>
       )}
 
       <button

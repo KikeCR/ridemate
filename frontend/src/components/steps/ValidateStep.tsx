@@ -23,29 +23,29 @@ export function ValidateStep({ session, validation, onEditDetails }: ValidateSte
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-slate-900">
-          <ShieldCheck size={20} className="text-indigo-600" />
+        <div className="flex items-center gap-2 text-slate-100">
+          <ShieldCheck size={20} className="text-indigo-400" />
           <h2 className="text-lg font-semibold">Validate your Provider connection</h2>
         </div>
         <button
           type="button"
           onClick={onEditDetails}
-          className="flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+          className="flex items-center gap-1 text-sm font-medium text-indigo-400 hover:text-indigo-300"
         >
           <Pencil size={14} />
           Edit details
         </button>
       </div>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-400">
         We&apos;ll check the credentials for account{" "}
-        <span className="font-mono text-slate-700">{session.accountId}</span> against the
+        <span className="font-mono text-slate-300">{session.accountId}</span> against the
         Provider.
       </p>
 
       <ValidationStatusBadge status={status} />
 
       {validation?.reason && (
-        <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+        <p className="rounded-lg bg-slate-800 p-3 text-sm text-slate-300">
           {validation.reason}
         </p>
       )}
@@ -58,17 +58,17 @@ export function ValidateStep({ session, validation, onEditDetails }: ValidateSte
             return (
               <li key={item.id} className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className={item.passed ? "text-emerald-600" : "text-red-600"}>
+                  <span className={item.passed ? "text-emerald-400" : "text-red-400"}>
                     {item.passed ? "✓" : "✗"}
                   </span>
-                  <span className="text-slate-700">{item.message ?? item.label}</span>
+                  <span className="text-slate-300">{item.message ?? item.label}</span>
                 </div>
                 {item.retryable && (
                   <button
                     type="button"
                     onClick={() => retryItemMutation.mutate(item.id)}
                     disabled={isRetryingThisItem}
-                    className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 disabled:opacity-60"
+                    className="flex items-center gap-1 text-xs font-medium text-indigo-400 hover:text-indigo-300 disabled:opacity-60"
                   >
                     <RotateCw
                       size={12}
@@ -84,7 +84,7 @@ export function ValidateStep({ session, validation, onEditDetails }: ValidateSte
       )}
 
       {mutation.isError && (
-        <p className="text-sm text-red-600">
+        <p className="text-sm text-red-400">
           Something went wrong while validating. Please try again.
         </p>
       )}

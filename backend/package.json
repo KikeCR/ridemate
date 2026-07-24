@@ -12,6 +12,7 @@
     "prisma:migrate:dev": "dotenv -e .env -- prisma migrate dev",
     "prisma:migrate:test": "dotenv -e .env.test -- prisma migrate deploy",
     "prisma:generate": "prisma generate",
+    "reset": "dotenv -e .env -- tsx scripts/resetSession.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

@@ -14,7 +14,7 @@ function App() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center gap-2 py-12 text-slate-500">
+        <div className="flex items-center justify-center gap-2 py-12 text-slate-400">
           <Loader2 size={20} className="animate-spin" />
           Loading your session...
         </div>
@@ -25,7 +25,7 @@ function App() {
   if (isError || !data) {
     return (
       <Layout>
-        <div className="flex items-center justify-center gap-2 py-12 text-red-600">
+        <div className="flex items-center justify-center gap-2 py-12 text-red-400">
           <TriangleAlert size={20} />
           Could not reach the onboarding service.
         </div>

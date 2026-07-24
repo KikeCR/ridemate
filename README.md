@@ -1,10 +1,10 @@
-# RideMate — Partner Onboarding Wizard
+# RideMate: Partner Onboarding Wizard
 
 A resumable, 3-step B2B partner onboarding wizard: connect a Provider account,
 validate the credentials against a mock Provider, and go live. Built as a
 take-home assessment. "RideMate" is a placeholder product name applied purely
 for presentable, consistent branding across the wizard (header, browser tab,
-favicon) — it isn't functionally significant to the assessment.
+favicon); it isn't functionally significant to the assessment.
 
 - **Backend**: Node.js + TypeScript, Fastify, Prisma, PostgreSQL
 - **Frontend**: React + TypeScript, Vite, TanStack Query, Tailwind CSS, lucide-react
@@ -21,14 +21,14 @@ frontend/  Vite + React wizard UI + Vitest/RTL suite
 Two fully independent npm projects (own `package.json`/lockfile each), not an
 npm/pnpm workspace. There's no shared package between them worth hoisting for,
 and independent folders mean each side installs, runs, and tests in total
-isolation — no workspace/Prisma-client resolution quirks, no ambiguity about
-which lockfile governs what. `cd` into each and run its commands directly.
+isolation, with no workspace/Prisma-client resolution quirks and no ambiguity
+about which lockfile governs what. `cd` into each and run its commands directly.
 
 ## Prerequisites
 
 - Node.js 20+
 - A local PostgreSQL instance (any of: Postgres.app, Homebrew `postgresql`,
-  or a throwaway Docker container — see below)
+  or a throwaway Docker container; see below)
 
 ## 1. Database setup
 
@@ -43,10 +43,10 @@ docker run -d --name ridemate-postgres \
 docker exec ridemate-postgres psql -U ridemate -d ridemate_dev -c "CREATE DATABASE ridemate_test;"
 ```
 
-(No Docker involved in the app itself — this is purely a convenient way to get
-a local Postgres; a Homebrew/Postgres.app install with the same DB names works
-identically. "No production infra" per the assessment scope refers to the
-*app*, not to how you happen to stand up a local dev database.)
+(No Docker involved in the app itself; this is purely a convenient way to get
+a local Postgres, and a Homebrew/Postgres.app install with the same DB names
+works identically. "No production infra" per the assessment scope refers to
+the *app*, not to how you happen to stand up a local dev database.)
 
 ## 2. Backend
 
@@ -71,6 +71,22 @@ npm test
 (optional env var, defaults to `info`). Tests and `npm run build`/`start` use
 plain JSON logging (or none, in tests) since `pino-pretty` is dev-only tooling.
 
+Since there's a single hardcoded partner, there's only ever one session row
+in the dev database, and once you've walked it to `LIVE` (or into any other
+state) that's what every reload shows until it's cleared. To try a different
+scenario from a clean slate without touching Postgres by hand:
+
+```bash
+cd backend
+npm run reset
+```
+
+This deletes the current session and its validation from the dev database
+(via Prisma, using `DATABASE_URL` from `.env`, same as everything else). The
+next `GET /api/session` (i.e. reloading the frontend) creates a brand new one
+at `DETAILS`. It only ever touches the dev DB, never the test DB, since the
+automated test suite already truncates its own tables between tests.
+
 ## 3. Frontend
 
 ```bash
@@ -93,20 +109,20 @@ Open http://localhost:5173 with the backend running and walk the wizard.
 
 - **Prettier, `semi: false`.** A single `.prettierrc.json` at the repo root
   applies to both `backend/` and `frontend/` (Prettier resolves config by
-  walking up from each file, so one root config is enough — no per-project
-  duplication). Run `npm run format` / `npm run format:check` in either
+  walking up from each file, so one root config is enough, no per-project
+  duplication needed). Run `npm run format` / `npm run format:check` in either
   folder.
 - **Frontend component tests use the Page Object pattern.** Each tested
   component has a corresponding class in `frontend/src/test/pageObjects/`
   (e.g. `DetailsStepPage`, `ValidateStepPage`) that owns rendering the
   component plus its queries/actions (`page.fillAndSubmit(...)`,
   `page.clickAction()`, `page.badge`), so the `*.test.tsx` files read as a
-  sequence of intent (`render → act → assert`) instead of raw
+  sequence of intent (`render, act, assert`) instead of raw
   `screen.getByRole`/`fireEvent` calls repeated in every test. New frontend
   tests should follow the same shape: add/extend a page object rather than
   querying the DOM directly in the test body.
 
-## Mock Provider — magic account IDs
+## Mock Provider: magic account IDs
 
 `POST /provider/validate` (and the in-process `Provider.validate()` call the
 session flow actually uses) branches on `accountId`:
@@ -119,7 +135,7 @@ session flow actually uses) branches on `accountId`:
 | `acc-unavailable` | 503 (in-process: throws) | Simulated provider outage; safe to retry |
 | anything else | 200 `{ status: "invalid", reason: "Unrecognized account." }` | Fails closed rather than vouching for an unknown account |
 
-`apiKey` can be anything for all of the above — only `accountId` selects the
+`apiKey` can be anything for all of the above; only `accountId` selects the
 path. Each item in `items` now has the shape a real integration would need:
 `{ id, label, passed, retryable, message? }` (`retryable` is only ever true
 for a failed item). The result also carries a `pagination` block (`page`,
@@ -133,141 +149,81 @@ optional `page`/`pageSize` in its body to see pagination in action (see
 All three session endpoints return `{ session, validation }`. `apiKey` is
 never echoed back (only a derived `hasApiKey: boolean`).
 
-- `GET /api/session` — resume-or-create for the single hardcoded partner. This
+- `GET /api/session`: resume-or-create for the single hardcoded partner. This
   is the entire resume mechanism; the frontend calls it once on mount.
-- `PATCH /api/session/details` — `{ companyName, accountId, apiKey }`, always
+- `PATCH /api/session/details`: `{ companyName, accountId, apiKey }`, always
   advances `currentStep` to `VALIDATE`. 409 once the session is `LIVE`.
-- `POST /api/session/validate` — `{ forceRetry?: boolean }`. Idempotent: calls
+- `POST /api/session/validate`: `{ forceRetry?: boolean }`. Idempotent: calls
   the Provider only if there's no prior validation, the credentials changed,
   the prior result was `UNAVAILABLE` (transient, always retried), or
   `forceRetry` is set. Always responds `200`; the outcome (including
   `INVALID`/`UNAVAILABLE`) lives in the body.
-- `POST /api/session/go-live` — finalizes inside a Prisma transaction after
-  re-checking `validation.status ∈ (VALID, PARTIAL)`. If already `LIVE`,
-  returns `200` with current state (idempotent double-submit) instead of
-  erroring.
-- `POST /api/session/validate/items/:itemId/retry` — re-checks a single
-  failed item without re-running the full validation. Requires an existing
+- `POST /api/session/go-live`: finalizes inside a Prisma transaction after
+  re-checking `validation.status ∈ (VALID, PARTIAL)` *and* that the stored
+  Validation's credential fingerprint still matches the session's current
+  `accountId`/`apiKey`. That second check matters: editing details to
+  different, unvalidated credentials after a successful validation, then
+  calling go-live directly without re-validating, would otherwise go live on
+  credentials that were never actually checked (the frontend's own flow
+  always routes back through `VALIDATE` after an edit, but the API itself
+  has to enforce this independently of the UI). If already `LIVE`, returns
+  `200` with current state (idempotent double-submit) instead of erroring.
+- `POST /api/session/validate/items/:itemId/retry`: re-checks a single failed
+  item without re-running the full validation. Requires an existing
   Validation (400 if none) and a known `itemId` (404 otherwise). Bumps
   `attempts`/`lastAttemptAt` and splices the refreshed item back into the
   stored list; the overall `validation.status` is left untouched (it still
-  reflects the last full `/validate` call) — use `forceRetry` on `/validate`
-  itself to refresh that. If the Provider is unavailable mid-retry, the item
+  reflects the last full `/validate` call, so use `forceRetry` on `/validate`
+  itself to refresh that). If the Provider is unavailable mid-retry, the item
   is left as-is (no corruption) but the attempt is still recorded.
-
-## Design decisions & trade-offs
-
-- **Idempotent `/validate` via a credential fingerprint.** The `Validation`
-  row stores `validatedAccountId` + `sha256(apiKey)` from its last real
-  Provider call. A new `/validate` call only actually hits the Provider if
-  those no longer match the session's current credentials, the prior result
-  was `UNAVAILABLE`, or the client explicitly asks for `forceRetry`. This
-  keeps "don't re-call the Provider needlessly" correct across credential
-  edits without needing a separate "dirty" flag.
-- **`/validate` always returns HTTP 200.** The business outcome (including
-  `INVALID`/`UNAVAILABLE`) is data in the response body, not a transport-layer
-  error — the frontend never has to branch on status codes to render a
-  validation state. This deliberately differs from `POST /provider/validate`,
-  which does return `503` for the unavailable case, since that route exists
-  specifically to mirror the mock Provider's own literal contract.
-- **In-process `Provider` interface vs. the `/provider/validate` HTTP route.**
-  The session flow (`sessionService`) calls `Provider.validate()` directly,
-  in-process — no self-referential HTTP hop, and it stays trivial to reason
-  about alongside a Prisma transaction. The `POST /provider/validate` Fastify
-  route is registered separately and shares the same `Provider` singleton,
-  purely so the literal HTTP contract from the spec is independently
-  reachable/testable. Swapping to a real Provider later means implementing the
-  `Provider` interface and changing one line in `buildApp()`.
-- **`go-live` re-checks validation status *inside* the transaction**, not just
-  before it opens. This is what makes "transactional consistency if go-live
-  fails midway" a meaningful thing to test — see
-  `backend/test/session.golive.test.ts`, which wraps Prisma so the session
-  update happens and then an error is thrown before commit, then asserts (via
-  a fresh read) that the session is still `IN_PROGRESS`.
-- **Single partner is a hardcoded constant** (`PARTNER_ID` in
-  `backend/src/lib/partner.ts`), with `OnboardingSession.partnerId` unique at
-  the DB level. `GET`, `PATCH`, and both `POST`s all resolve "the" session via
-  find-or-create against that constant — no endpoint requires `GET` to have
-  been called first, since a curl/Postman client hitting `PATCH` directly is
-  a legitimate use of a single-partner API.
-- **Unrecognized `accountId` fails closed as `invalid`,** not `valid` — a
-  provider shouldn't vouch for an account it has no record of, and this keeps
-  the mock's behavior deterministic against exactly the four documented magic
-  values.
-- **`apiKey` never appears in any API response**, even though it's stored in
-  plaintext (see "Deferred" below). Only a derived `hasApiKey: boolean` is
-  returned, so the frontend can render "already entered" state without ever
-  receiving the secret back.
-- **`PATCH /details` stays editable any time before `LIVE`,** including from
-  `VALIDATE`/`REVIEW`, and always resets `currentStep` back to `VALIDATE` (a
-  credential change should always require re-validating) — exercised directly
-  by the `session.details.test.ts` re-edit test. The frontend now surfaces this
-  as an "Edit details" link on `VALIDATE`/`REVIEW`. It's implemented as a
-  transient, purely local `isEditingDetails` toggle in `App.tsx` — it never
-  overrides which step is canonical (a reload always resets it to `false`, so
-  resumability still lands exactly on `session.currentStep`), it just decides
-  whether to show the Details form on top of the current step while editing.
-  Saving routes through the same `PATCH /details` call as the initial flow;
-  cancelling just flips the toggle back with no request sent.
-- **Per-item retry doesn't recompute the overall validation status.** The mock
-  Provider has no true single-item lookup, so `retryItem` re-runs a full
-  `provider.validate()` call and only splices the matching item back into the
-  stored list. Recomputing `validation.status` from item-level pass/fail would
-  mean no longer trusting the Provider's own top-level status — a bigger
-  semantic change than the mock's actual complexity justifies. Use `forceRetry`
-  on `/validate` to get a fresh overall status.
-- **Provider item/pagination shape is realistic, but pagination browsing isn't
-  wired into the session flow.** `ProviderResult` now carries `pagination`
-  metadata and each item has `id`/`label`/`retryable`, matching what a real
-  paginated integration would return. `sessionService.validateSession` doesn't
-  pass `page`/`pageSize` through, though — the mock's item lists are small
-  enough that everything always fits on page 1, and threading pagination into
-  the idempotent `/validate` contract would conflate two different concerns
-  (checking whether credentials are still valid vs. browsing a large item
-  list). `POST /provider/validate` does accept `page`/`pageSize` directly, so
-  the mechanism is demonstrable without that conflation.
-- **Readable logs.** The dev server (`src/index.ts`) uses `pino-pretty` for
-  colorized, human-readable output instead of raw JSON. The central error
-  handler logs at a level matching the failure: `warn` for expected 4xx
-  rejections (validation errors, business-rule conflicts, malformed bodies)
-  and `error` (with the full error object) only for genuinely unexpected
-  failures — so a `tail` of dev logs surfaces real bugs without being drowned
-  out by routine 400s.
-- **Credential fingerprinting lives in its own module**
-  (`src/lib/credentialFingerprint.ts`) with its own unit tests
-  (`credentialFingerprint.test.ts`), separate from the `sessionService`
-  integration tests. It's the trickiest piece of the idempotency logic
-  ("did the credentials actually change since the last Provider call?"), so
-  it gets isolated, fast, non-DB-dependent test coverage of its own.
-- **Test isolation via `TRUNCATE` between tests**, not per-test transactions
-  — with only two tables and no need for nested-transaction gymnastics, a
-  `beforeEach` truncate against a dedicated `ridemate_test` database is simpler
-  and just as fast. `vitest.config.ts` sets `fileParallelism: false` so
-  concurrent test files can't race on the same truncated tables.
-- **Tailwind v4** via `@tailwindcss/vite` (single `@import "tailwindcss"`, no
-  `tailwind.config.js` needed) — less setup for the same result, appropriate
-  given the "simple, clean, modern" styling bar rather than a deep design
-  system.
 
 ## Explicitly deferred (per assessment scope)
 
-- **Auth/login** — single hardcoded partner, no session/auth layer.
-- **API key encryption at rest** — `apiKey` is stored as plaintext in
-  `OnboardingSession`. In a real system this would be encrypted with a KMS-held
-  key (or tokenized at the Provider boundary so the app never persists the raw
-  secret at all). Deferred because it adds key-management infrastructure with
-  no bearing on the resumable-wizard behavior being assessed.
-- **Real async Provider (webhooks/polling)** — the mock Provider is
+- **Auth/login**: single hardcoded partner, no session/auth layer.
+- **API key encryption at rest**: `apiKey` is stored as plaintext in
+  `OnboardingSession`. In a real system this would be encrypted with a
+  KMS-held key (or tokenized at the Provider boundary so the app never
+  persists the raw secret at all). Deferred because it adds key-management
+  infrastructure with no bearing on the resumable-wizard behavior being
+  assessed.
+- **Real async Provider (webhooks/polling)**: the mock Provider is
   synchronous; a real integration would likely need to kick off an async job
   and poll/webhook back, which would change `Validation` from a
   request/response shape to a job-status shape. Deferred since the spec calls
   for a synchronous mock.
-- **Multi-partner support** — `partnerId` is a hardcoded constant, not derived
+- **Multi-partner support**: `partnerId` is a hardcoded constant, not derived
   from auth or a request param.
-- **Production infra** — no Docker multi-stage build, no orchestration, no CI.
+- **Production infra**: no Docker multi-stage build, no orchestration, no CI.
   Local run only, as specified.
-- **Visual polish beyond function** — no responsive breakpoints, dark mode, or
+- **Visual polish beyond function**: no responsive breakpoints, dark mode, or
   animation, per scope; one accent color, one fixed layout.
+
+## Known limitations
+
+- **Frontend/backend types can drift silently.** `frontend/src/types/session.ts`
+  is hand-written to match what the backend actually returns (see
+  `backend/src/services/sessionService.ts`'s `SessionEnvelope`); nothing
+  enforces that they stay in sync. If the backend response shape changes,
+  nothing catches it at compile time, only a runtime failure or a test
+  breaking would surface it, and only if a test happens to touch the changed
+  field. Two independent npm projects (a deliberate choice; see "Repo
+  layout") rules out simply importing shared `.ts` types across them without
+  either a workspace/shared package or a build step, both of which are more
+  machinery than this project's size justifies on their own.
+
+  The lightest-weight improvement, if this were taken further, would be a
+  small **runtime validation layer at the frontend's API boundary**:
+  zod schemas in `frontend/src/api/` mirroring the existing TS interfaces,
+  parsing every `fetch` response before it's handed to React Query. That
+  doesn't give compile-time safety, but it turns "the shape drifted" from a
+  silent bug into an immediate, loud runtime error at the one place all
+  responses already pass through, with no new build step and no shared
+  package. It's a few schema definitions, not a rewrite. A heavier version of
+  the same idea (better suited to a bigger project, not proposed here) would
+  be generating an OpenAPI spec from the backend's existing Zod schemas and
+  running `openapi-typescript` against it to generate the frontend's types
+  directly, trading a small codegen step for actual compile-time guarantees
+  instead of a runtime check.
 
 ## Running everything at a glance
 

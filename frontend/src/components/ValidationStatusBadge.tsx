@@ -18,27 +18,27 @@ const STATUS_CONFIG: Record<ValidationStatus, StatusConfig> = {
   PENDING: {
     label: "Not yet validated",
     icon: Clock,
-    className: "bg-slate-100 text-slate-600 border-slate-200",
+    className: "bg-slate-800 text-slate-300 border-slate-700",
   },
   VALID: {
     label: "Valid",
     icon: CheckCircle2,
-    className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    className: "bg-emerald-950 text-emerald-400 border-emerald-800",
   },
   PARTIAL: {
     label: "Valid with warnings",
     icon: AlertTriangle,
-    className: "bg-amber-50 text-amber-700 border-amber-200",
+    className: "bg-amber-950 text-amber-400 border-amber-800",
   },
   INVALID: {
     label: "Invalid credentials",
     icon: XCircle,
-    className: "bg-red-50 text-red-700 border-red-200",
+    className: "bg-red-950 text-red-400 border-red-800",
   },
   UNAVAILABLE: {
     label: "Provider unavailable",
     icon: RefreshCw,
-    className: "bg-sky-50 text-sky-700 border-sky-200",
+    className: "bg-sky-950 text-sky-400 border-sky-800",
   },
 }
 

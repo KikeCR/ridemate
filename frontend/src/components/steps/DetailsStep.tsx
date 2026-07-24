@@ -25,17 +25,17 @@ export function DetailsStep({ session, onSaved, onCancel }: DetailsStepProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="flex items-center gap-2 text-slate-900">
-        <Building2 size={20} className="text-indigo-600" />
+      <div className="flex items-center gap-2 text-slate-100">
+        <Building2 size={20} className="text-indigo-400" />
         <h2 className="text-lg font-semibold">Company & Provider details</h2>
       </div>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-400">
         Tell us about your company and connect your Provider account so we can validate it
         in the next step.
       </p>
 
       <div className="space-y-1.5">
-        <label htmlFor="companyName" className="text-sm font-medium text-slate-700">
+        <label htmlFor="companyName" className="text-sm font-medium text-slate-300">
           Company name
         </label>
         <input
@@ -43,13 +43,13 @@ export function DetailsStep({ session, onSaved, onCancel }: DetailsStepProps) {
           value={companyName}
           onChange={(e) => setCompanyName(e.target.value)}
           required
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           placeholder="Acme Co"
         />
       </div>
 
       <div className="space-y-1.5">
-        <label htmlFor="accountId" className="text-sm font-medium text-slate-700">
+        <label htmlFor="accountId" className="text-sm font-medium text-slate-300">
           Provider account ID
         </label>
         <input
@@ -57,28 +57,28 @@ export function DetailsStep({ session, onSaved, onCancel }: DetailsStepProps) {
           value={accountId}
           onChange={(e) => setAccountId(e.target.value)}
           required
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-mono text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           placeholder="acc-valid"
         />
       </div>
 
       <div className="space-y-1.5">
-        <label htmlFor="apiKey" className="text-sm font-medium text-slate-700">
+        <label htmlFor="apiKey" className="text-sm font-medium text-slate-300">
           Provider API key
         </label>
         <input
           id="apiKey"
-          type="password"
+          type="text"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
           required
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-mono text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           placeholder="Enter your Provider API key"
         />
       </div>
 
       {mutation.isError && (
-        <p className="text-sm text-red-600">Could not save details. Please try again.</p>
+        <p className="text-sm text-red-400">Could not save details. Please try again.</p>
       )}
 
       <div className="flex gap-3">
@@ -98,7 +98,7 @@ export function DetailsStep({ session, onSaved, onCancel }: DetailsStepProps) {
             type="button"
             onClick={onCancel}
             disabled={mutation.isPending}
-            className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Cancel
           </button>
