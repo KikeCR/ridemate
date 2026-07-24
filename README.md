@@ -67,6 +67,10 @@ cd backend
 npm test
 ```
 
+`npm run dev` logs with `pino-pretty` (colorized, readable) at `LOG_LEVEL`
+(optional env var, defaults to `info`). Tests and `npm run build`/`start` use
+plain JSON logging (or none, in tests) since `pino-pretty` is dev-only tooling.
+
 ## 3. Frontend
 
 ```bash
@@ -116,7 +120,13 @@ session flow actually uses) branches on `accountId`:
 | anything else | 200 `{ status: "invalid", reason: "Unrecognized account." }` | Fails closed rather than vouching for an unknown account |
 
 `apiKey` can be anything for all of the above — only `accountId` selects the
-path.
+path. Each item in `items` now has the shape a real integration would need:
+`{ id, label, passed, retryable, message? }` (`retryable` is only ever true
+for a failed item). The result also carries a `pagination` block (`page`,
+`pageSize`, `totalItems`, `totalPages`); the mock's item lists are small
+enough to always fit on page 1 by default, but `/provider/validate` accepts
+optional `page`/`pageSize` in its body to see pagination in action (see
+`MockProvider`'s `paginate` helper and `provider.mock.test.ts`).
 
 ## API summary
 
@@ -136,6 +146,14 @@ never echoed back (only a derived `hasApiKey: boolean`).
   re-checking `validation.status ∈ (VALID, PARTIAL)`. If already `LIVE`,
   returns `200` with current state (idempotent double-submit) instead of
   erroring.
+- `POST /api/session/validate/items/:itemId/retry` — re-checks a single
+  failed item without re-running the full validation. Requires an existing
+  Validation (400 if none) and a known `itemId` (404 otherwise). Bumps
+  `attempts`/`lastAttemptAt` and splices the refreshed item back into the
+  stored list; the overall `validation.status` is left untouched (it still
+  reflects the last full `/validate` call) — use `forceRetry` on `/validate`
+  itself to refresh that. If the Provider is unavailable mid-retry, the item
+  is left as-is (no corruption) but the attempt is still recorded.
 
 ## Design decisions & trade-offs
 
@@ -182,10 +200,45 @@ never echoed back (only a derived `hasApiKey: boolean`).
   receiving the secret back.
 - **`PATCH /details` stays editable any time before `LIVE`,** including from
   `VALIDATE`/`REVIEW`, and always resets `currentStep` back to `VALIDATE` (a
-  credential change should always require re-validating). The wizard UI itself
-  doesn't expose a "go back and edit" affordance from later steps — the spec's
-  flow is linear (Details → Validate → Review) — but the API supports it, which
-  is what the `session.details.test.ts` re-edit test exercises directly.
+  credential change should always require re-validating) — exercised directly
+  by the `session.details.test.ts` re-edit test. The frontend now surfaces this
+  as an "Edit details" link on `VALIDATE`/`REVIEW`. It's implemented as a
+  transient, purely local `isEditingDetails` toggle in `App.tsx` — it never
+  overrides which step is canonical (a reload always resets it to `false`, so
+  resumability still lands exactly on `session.currentStep`), it just decides
+  whether to show the Details form on top of the current step while editing.
+  Saving routes through the same `PATCH /details` call as the initial flow;
+  cancelling just flips the toggle back with no request sent.
+- **Per-item retry doesn't recompute the overall validation status.** The mock
+  Provider has no true single-item lookup, so `retryItem` re-runs a full
+  `provider.validate()` call and only splices the matching item back into the
+  stored list. Recomputing `validation.status` from item-level pass/fail would
+  mean no longer trusting the Provider's own top-level status — a bigger
+  semantic change than the mock's actual complexity justifies. Use `forceRetry`
+  on `/validate` to get a fresh overall status.
+- **Provider item/pagination shape is realistic, but pagination browsing isn't
+  wired into the session flow.** `ProviderResult` now carries `pagination`
+  metadata and each item has `id`/`label`/`retryable`, matching what a real
+  paginated integration would return. `sessionService.validateSession` doesn't
+  pass `page`/`pageSize` through, though — the mock's item lists are small
+  enough that everything always fits on page 1, and threading pagination into
+  the idempotent `/validate` contract would conflate two different concerns
+  (checking whether credentials are still valid vs. browsing a large item
+  list). `POST /provider/validate` does accept `page`/`pageSize` directly, so
+  the mechanism is demonstrable without that conflation.
+- **Readable logs.** The dev server (`src/index.ts`) uses `pino-pretty` for
+  colorized, human-readable output instead of raw JSON. The central error
+  handler logs at a level matching the failure: `warn` for expected 4xx
+  rejections (validation errors, business-rule conflicts, malformed bodies)
+  and `error` (with the full error object) only for genuinely unexpected
+  failures — so a `tail` of dev logs surfaces real bugs without being drowned
+  out by routine 400s.
+- **Credential fingerprinting lives in its own module**
+  (`src/lib/credentialFingerprint.ts`) with its own unit tests
+  (`credentialFingerprint.test.ts`), separate from the `sessionService`
+  integration tests. It's the trickiest piece of the idempotency logic
+  ("did the credentials actually change since the last Provider call?"), so
+  it gets isolated, fast, non-DB-dependent test coverage of its own.
 - **Test isolation via `TRUNCATE` between tests**, not per-test transactions
   — with only two tables and no need for nested-transaction gymnastics, a
   `beforeEach` truncate against a dedicated `ridemate_test` database is simpler
@@ -215,24 +268,6 @@ never echoed back (only a derived `hasApiKey: boolean`).
   Local run only, as specified.
 - **Visual polish beyond function** — no responsive breakpoints, dark mode, or
   animation, per scope; one accent color, one fixed layout.
-
-## What I'd do with another day
-
-- Add a "back to edit details" affordance in the frontend for `VALIDATE`/
-  `REVIEW` (the backend already supports it), rather than leaving it
-  API-only.
-- Expand the `items` shape returned by the Provider into something a real
-  integration would actually need (pagination, per-item retry), since right
-  now it's a flat list sized for the mock's four scenarios.
-- Add a few more edge-case backend tests: concurrent double-`GET` on a cold
-  session (race on the `upsert`), and a malformed/empty JSON body against each
-  mutation route.
-- Wire up `pino-pretty` for readable dev logs instead of the raw JSON Fastify
-  emits by default.
-- Consider moving the credential fingerprint (`validatedApiKeyHash`) comparison
-  into a small dedicated module with its own unit tests, independent of the
-  full `sessionService` integration tests, since it's the trickiest piece of
-  logic in the idempotency behavior.
 
 ## Running everything at a glance
 

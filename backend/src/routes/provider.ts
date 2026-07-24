@@ -4,13 +4,16 @@ import { ProviderUnavailableError } from "../provider/types.js"
 interface ProviderValidateBody {
   accountId: string
   apiKey: string
+  page?: number
+  pageSize?: number
 }
 
 /**
  * Mirrors the literal mock Provider HTTP contract (200/200/200/503) for
  * documentation and contract-testing purposes. The session flow itself
  * calls the Provider interface in-process (see sessionService) and never
- * hits this route over HTTP.
+ * hits this route over HTTP. `page`/`pageSize` are optional and only affect
+ * how the returned item list is sliced - see MockProvider's `paginate`.
  */
 export async function providerRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Body: ProviderValidateBody }>(
@@ -19,7 +22,8 @@ export async function providerRoutes(app: FastifyInstance): Promise<void> {
       try {
         const result = await app.provider.validate(
           request.body.accountId,
-          request.body.apiKey
+          request.body.apiKey,
+          { page: request.body.page, pageSize: request.body.pageSize }
         )
         return reply.code(200).send(result)
       } catch (err) {

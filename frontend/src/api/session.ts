@@ -25,3 +25,10 @@ export function goLive(): Promise<SessionEnvelope> {
     body: JSON.stringify({}),
   })
 }
+
+export function retryValidationItem(itemId: string): Promise<SessionEnvelope> {
+  return apiFetch<SessionEnvelope>(
+    `/api/session/validate/items/${encodeURIComponent(itemId)}/retry`,
+    { method: "POST", body: JSON.stringify({}) }
+  )
+}

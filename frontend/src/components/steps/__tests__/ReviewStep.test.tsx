@@ -20,7 +20,7 @@ const baseSession: SessionDto = {
 
 const validValidation: ValidationDto = {
   status: "VALID",
-  items: [{ key: "credentials", passed: true }],
+  items: [{ id: "credentials", label: "Credentials", passed: true, retryable: false }],
   warnings: [],
   reason: null,
   attempts: 1,
@@ -66,5 +66,25 @@ describe("ReviewStep", () => {
 
     expect(page.liveMessage).toBeInTheDocument()
     expect(page.goLiveButton).not.toBeInTheDocument()
+  })
+
+  it("hides the Edit details link once LIVE", () => {
+    const page = ReviewStepPage.render({
+      session: { ...baseSession, status: "LIVE" },
+      validation: validValidation,
+    })
+
+    expect(page.editDetailsButton).not.toBeInTheDocument()
+  })
+
+  it("calls onEditDetails when the Edit details link is clicked", () => {
+    const page = ReviewStepPage.render({
+      session: baseSession,
+      validation: validValidation,
+    })
+
+    page.clickEditDetails()
+
+    expect(page.onEditDetails).toHaveBeenCalledTimes(1)
   })
 })

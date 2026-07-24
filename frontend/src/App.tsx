@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Loader2, TriangleAlert } from "lucide-react"
 import { useSessionQuery } from "./hooks/useSessionQuery"
 import { Layout } from "./components/Layout"
@@ -8,6 +9,7 @@ import { ReviewStep } from "./components/steps/ReviewStep"
 
 function App() {
   const { data, isLoading, isError } = useSessionQuery()
+  const [isEditingDetails, setIsEditingDetails] = useState(false)
 
   if (isLoading) {
     return (
@@ -32,6 +34,10 @@ function App() {
   }
 
   const { session, validation } = data
+  // isEditingDetails is a transient UI toggle, not a step tracker: it never
+  // overrides which step is canonical, and a reload always resets it to
+  // false, so resumability still lands on session.currentStep exactly.
+  const showDetailsForm = session.currentStep === "DETAILS" || isEditingDetails
 
   return (
     <Layout>
@@ -39,12 +45,26 @@ function App() {
         currentStep={session.currentStep}
         isLive={session.status === "LIVE"}
       />
-      {session.currentStep === "DETAILS" && <DetailsStep session={session} />}
-      {session.currentStep === "VALIDATE" && (
-        <ValidateStep session={session} validation={validation} />
+      {showDetailsForm && (
+        <DetailsStep
+          session={session}
+          onSaved={() => setIsEditingDetails(false)}
+          onCancel={isEditingDetails ? () => setIsEditingDetails(false) : undefined}
+        />
       )}
-      {session.currentStep === "REVIEW" && (
-        <ReviewStep session={session} validation={validation} />
+      {!showDetailsForm && session.currentStep === "VALIDATE" && (
+        <ValidateStep
+          session={session}
+          validation={validation}
+          onEditDetails={() => setIsEditingDetails(true)}
+        />
+      )}
+      {!showDetailsForm && session.currentStep === "REVIEW" && (
+        <ReviewStep
+          session={session}
+          validation={validation}
+          onEditDetails={() => setIsEditingDetails(true)}
+        />
       )}
     </Layout>
   )

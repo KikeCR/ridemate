@@ -15,8 +15,10 @@ export interface SessionDto {
 }
 
 export interface ValidationItemDto {
-  key: string
+  id: string
+  label: string
   passed: boolean
+  retryable: boolean
   message?: string
 }
 

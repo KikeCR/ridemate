@@ -6,9 +6,9 @@ import type {
   Validation,
   ValidationStatus,
 } from "@prisma/client"
-import { sha256 } from "../lib/hash.js"
+import { computeFingerprint, fingerprintMatches } from "../lib/credentialFingerprint.js"
 import { PARTNER_ID } from "../lib/partner.js"
-import { BadRequestError, InvalidStateError } from "../lib/errors.js"
+import { BadRequestError, InvalidStateError, NotFoundError } from "../lib/errors.js"
 import type {
   Provider,
   ProviderValidationItem,
@@ -123,12 +123,11 @@ export class SessionService {
     const existing = await this.prisma.validation.findUnique({
       where: { sessionId: session.id },
     })
-    const currentHash = sha256(session.apiKey)
+    const fingerprint = computeFingerprint(session.accountId, session.apiKey)
 
     const shouldCallProvider =
       !existing ||
-      existing.validatedAccountId !== session.accountId ||
-      existing.validatedApiKeyHash !== currentHash ||
+      !fingerprintMatches(fingerprint, existing) ||
       existing.status === "UNAVAILABLE" ||
       body.forceRetry === true
 
@@ -169,8 +168,8 @@ export class SessionService {
       reason,
       attempts,
       lastAttemptAt,
-      validatedAccountId: session.accountId,
-      validatedApiKeyHash: currentHash,
+      validatedAccountId: fingerprint.accountId,
+      validatedApiKeyHash: fingerprint.apiKeyHash,
     }
 
     const [updatedSession, updatedValidation] = await this.prisma.$transaction([
@@ -186,6 +185,61 @@ export class SessionService {
     ])
 
     return serialize(updatedSession, updatedValidation)
+  }
+
+  /**
+   * Re-checks a single failed item without re-running the full validation.
+   * The mock provider has no true single-item lookup, so this re-calls
+   * validate() and only splices the matching item back into the stored
+   * list - the overall validation.status stays whatever the last full
+   * validate() call produced; use forceRetry on /validate to refresh that.
+   */
+  async retryItem(itemId: string): Promise<SessionEnvelope> {
+    const session = await this.getOrCreateSessionRow()
+    if (!session.accountId || !session.apiKey) {
+      throw new BadRequestError("Save company details and credentials before validating.")
+    }
+
+    const existing = await this.prisma.validation.findUnique({
+      where: { sessionId: session.id },
+    })
+    if (!existing) {
+      throw new BadRequestError("Run a validation before retrying an individual item.")
+    }
+
+    const existingItems =
+      (existing.items as unknown as ProviderValidationItem[] | null) ?? []
+    if (!existingItems.some((item) => item.id === itemId)) {
+      throw new NotFoundError(`No validation item found with id "${itemId}".`)
+    }
+
+    let updatedItems = existingItems
+    try {
+      const result = await this.provider.validate(session.accountId, session.apiKey)
+      const refreshedItem = result.items.find((item) => item.id === itemId)
+      if (refreshedItem) {
+        updatedItems = existingItems.map((item) =>
+          item.id === itemId ? refreshedItem : item
+        )
+      }
+    } catch (err) {
+      if (!(err instanceof ProviderUnavailableError)) {
+        throw err
+      }
+      // Transient failure: keep the item's last known result, but still
+      // record that a retry was attempted below.
+    }
+
+    const updatedValidation = await this.prisma.validation.update({
+      where: { sessionId: session.id },
+      data: {
+        items: updatedItems as unknown as Prisma.InputJsonValue,
+        attempts: existing.attempts + 1,
+        lastAttemptAt: new Date(),
+      },
+    })
+
+    return serialize(session, updatedValidation)
   }
 
   async goLive(): Promise<SessionEnvelope> {
