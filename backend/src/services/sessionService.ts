@@ -253,6 +253,12 @@ export class SessionService {
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
+      // Re-read both inside the transaction: a credential edit (or a
+      // concurrent one) between the initial read above and this commit
+      // must not be missed.
+      const currentSession = await tx.onboardingSession.findUniqueOrThrow({
+        where: { id: session.id },
+      })
       const validation = await tx.validation.findUnique({
         where: { sessionId: session.id },
       })
@@ -260,6 +266,23 @@ export class SessionService {
         throw new InvalidStateError(
           "Validation must be VALID or PARTIAL before going live.",
           { validationStatus: validation?.status ?? null }
+        )
+      }
+
+      // The validation's own status only proves the credentials it was run
+      // against were good - it says nothing about whether those are still
+      // the session's current credentials. Without this, editing details to
+      // different (unvalidated) credentials after a successful validation
+      // and then calling go-live directly would go live on credentials that
+      // were never actually checked.
+      const fingerprint =
+        currentSession.accountId && currentSession.apiKey
+          ? computeFingerprint(currentSession.accountId, currentSession.apiKey)
+          : null
+      if (!fingerprint || !fingerprintMatches(fingerprint, validation)) {
+        throw new InvalidStateError(
+          "Credentials have changed since the last validation. Re-validate before going live.",
+          { validationStatus: validation.status }
         )
       }
 

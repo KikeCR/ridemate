@@ -104,6 +104,62 @@ describe("POST /api/session/go-live", () => {
     expect(res.status).toBe(409)
   })
 
+  it("409s when the accountId was edited after validating and never re-validated", async () => {
+    ;({ app } = buildTestApp())
+    await app.ready()
+    await progressToValidated(app, "acc-valid")
+
+    // Edit to different, unvalidated credentials without calling /validate again.
+    await request(app.server)
+      .patch("/api/session/details")
+      .send({ companyName: "Acme Co", accountId: "acc-invalid", apiKey: "secret" })
+
+    const res = await request(app.server).post("/api/session/go-live").send({})
+    expect(res.status).toBe(409)
+
+    const fresh = await request(app.server).get("/api/session")
+    expect(fresh.body.session.status).toBe("IN_PROGRESS")
+  })
+
+  it("409s when only the apiKey was edited after validating and never re-validated", async () => {
+    ;({ app } = buildTestApp())
+    await app.ready()
+    await progressToValidated(app, "acc-valid")
+
+    // Same accountId, different apiKey - still a credential change the
+    // stored Validation was never run against.
+    await request(app.server).patch("/api/session/details").send({
+      companyName: "Acme Co",
+      accountId: "acc-valid",
+      apiKey: "a-different-secret",
+    })
+
+    const res = await request(app.server).post("/api/session/go-live").send({})
+    expect(res.status).toBe(409)
+
+    const fresh = await request(app.server).get("/api/session")
+    expect(fresh.body.session.status).toBe("IN_PROGRESS")
+  })
+
+  it("succeeds once the changed credentials are re-validated", async () => {
+    ;({ app } = buildTestApp())
+    await app.ready()
+    await progressToValidated(app, "acc-valid")
+
+    await request(app.server)
+      .patch("/api/session/details")
+      .send({ companyName: "Acme Co", accountId: "acc-partial", apiKey: "secret" })
+
+    const blocked = await request(app.server).post("/api/session/go-live").send({})
+    expect(blocked.status).toBe(409)
+
+    await request(app.server).post("/api/session/validate").send({})
+    const res = await request(app.server).post("/api/session/go-live").send({})
+
+    expect(res.status).toBe(200)
+    expect(res.body.session.status).toBe("LIVE")
+  })
+
   it("succeeds when validation is VALID", async () => {
     ;({ app } = buildTestApp())
     await app.ready()
